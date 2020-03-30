@@ -44,10 +44,10 @@
             <div class="collapse navbar-collapse" id="navbarResponsive">
                 <ul class="navbar-nav ml-auto">
                     <li class="nav-item">
-                        <a class="nav-link" href="/about">about</a>
+                        <a class="nav-link" href="/contact">Contact</a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" href="/contact">Contact</a>
+                        <a class="nav-link" href="/about">about</a>
                     </li>
                 </ul>
             </div>
@@ -73,83 +73,21 @@
     <div class="container">
         <div class="row">
             <div class="col-lg-8 col-md-10 mx-auto">
-                <h2>Mocking sealed classes in C#</h2>
-<div>
-    <span class="tags">
-        <a href="/tags/c#">C#</a>
-        <a href="/tags/azure">Azure</a>
-        <a href="/tags/unit test">Unit test</a>
-        <a href="/tags/mocking">Mocking</a>
-        <a href="/tags/dependency injection">Dependency injection</a>
-    </span>
+                <h2>Tag: Unit test</h2>
+
+<div class="post-preview">
+    <a href="/posts/mocking-sealed">
+        <h3 class="post-title">
+            Mocking sealed classes in C#
+        </h3>
+        <h4 class="post-subtitle">
+            How to wrap sealed classes with custom classes that implement mockable interface
+        </h4>
+    </a>
+    <p class="post-meta">Posted by
+        <a href="/about">codernr</a>
+        on 2020-03-26</p>
 </div>
-<p class="post-meta">Posted by
-    <a href="/about">codernr</a>
-    on 2020-03-26
-</p>
-
-<blockquote>
-<p>Roses are red<br />
-violets are blue<br />
-mocking a sealed class<br />
-is painful in Azure</p>
-</blockquote>
-<p>So you decided to start a new Azure project and you swear this time you won't skip writing unit tests, using dependency injection and all the fancy shit cool programmers do, right? Then you run into the realities of some Azure SDK like me (<em>or any other</em>) and realize that most of the classes are sealed and they don't even implement a public interface. This is a problem, since most of the mocking frameworks can mock only interfaces.</p>
-<p>===</p>
-<p>Let's see an example with an imaginary SDK class, and a property-injected utility class that uses it:</p>
-<pre><code class="language-csharp">public sealed class SDKClass
-{
-	public void DoSomeAwesomeSDKStuff()
-	{
-		Console.WriteLine(&quot;I'm doing some Awesome SDK stuff!&quot;);
-	}
-}
-
-public class UtilityClass
-{
-	public SDKClass SDKTool { get; set; }
-	
-	public void UsingSDK()
-	{
-		this.SDKTool.DoSomeAwesomeSDKStuff();
-	}
-}
-</code></pre>
-<p>If you want to unit test your <code>UsingSDK</code> method you have to mock <code>SDKClass</code> property somehow. Since it doesn't implement any (public) interface, you can only achieve this by creating a wrapper class and defining an interface that your wrapper implements. This way you can type your SDKTool property as the implemented interface:</p>
-<pre><code class="language-csharp">// the interface to be implemented
-public interface ISDKInterface
-{
-	void DoSomeAwesomeSDKStuff();
-}
-
-// the wrapper class that implements the interface
-public class SDKWrapper : ISDKInterface
-{
-	private SDKClass wrappedInstance;
-
-	public void SDKWrapper()
-	{
-		this.wrappedInstance = new SDKClass();
-	}
-
-	public void DoSomeAwesomeSDKStuff()
-	{
-		this.wrappedInstance.DoSomeAwesomeSDKStuff();
-	}
-}
-
-// typing SDKTool property as ISDKInterface
-public class UtilityClass
-{
-    public ISDKInterface SDKTool { get; set; }
-
-    public void UsingSDK()
-    {
-        this.SDKTool.DoSomeAwesomeSDKStuff();
-    }
-}
-</code></pre>
-<p>So this time when you property inject <code>UtilityClass</code>, you have to inject an instance of <code>SDKWrapper</code> instead of <code>SDKClass</code>. And during unit testing, you can mock the ISDKInterface!</p>
 
             </div>
         </div>
