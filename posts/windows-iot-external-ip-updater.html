@@ -1,0 +1,397 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <meta name="description" content="">
+    <meta name="author" content="">
+
+    <title>CODE.RNR | Windows IoT external IP updater</title>
+
+    <!-- Bootstrap core CSS -->
+    <link href="/assets/vendor/bootstrap/css/bootstrap.min.css" rel="stylesheet">
+
+    <!-- Custom fonts for this template -->
+    <link href="/assets/vendor/fontawesome-free/css/all.min.css" rel="stylesheet" type="text/css">
+    <link href='https://fonts.googleapis.com/css?family=Roboto:400,700,400italic,700italic' rel='stylesheet'
+        type='text/css'>
+    <link
+        href='https://fonts.googleapis.com/css?family=Montserrat:300italic,400italic,600italic,700italic,800italic,400,300,600,700,800'
+        rel='stylesheet' type='text/css'>
+    <link rel="stylesheet" href="/assets/vendor/highlight.js/styles/dracula.css">
+    <!-- Custom styles for this template -->
+    <link href="/assets/css/clean-blog.min.css" rel="stylesheet">
+
+    <script src="/assets/vendor/highlight.js/highlight.pack.js"></script>
+    <script>hljs.initHighlightingOnLoad();</script>
+
+</head>
+
+<body>
+
+    <!-- Navigation -->
+    <nav class="navbar navbar-expand-lg navbar-dark fixed-top" id="mainNav">
+        <div class="container">
+            <a class="navbar-brand" href="/">CODE.RNR</a>
+            <button class="navbar-toggler navbar-toggler-right" type="button" data-toggle="collapse"
+                data-target="#navbarResponsive" aria-controls="navbarResponsive" aria-expanded="false"
+                aria-label="Toggle navigation">
+                Menu
+                <i class="fas fa-bars"></i>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarResponsive">
+                <ul class="navbar-nav ml-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="/contact">Contact</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/about">about</a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Page Header -->
+    <header class="masthead" style="background-image: url('/assets/img/main.png')">
+        <div class="overlay"></div>
+        <div class="container">
+            <div class="row">
+                <div class="col-lg-8 col-md-10 mx-auto">
+                    <div class="site-heading">
+                        <h1>CODE.RNR</h1>
+                        <span class="subheading">Learn, code, rock'n'roll</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <div class="container">
+        <div class="row">
+            <div class="col-lg-8 col-md-10 mx-auto">
+                <h2>Windows IoT external IP updater</h2>
+<div>
+    <span class="tags">
+        <a href="/tags/winrt">WinRT</a>
+        <a href="/tags/universal windows platform">Universal Windows Platform</a>
+        <a href="/tags/raspberry pi">Raspberry Pi</a>
+        <a href="/tags/windows 10 core iot">Windows 10 core IoT</a>
+        <a href="/tags/c#">C#</a>
+    </span>
+</div>
+<p class="post-meta">Posted by
+    <a href="/about">codernr</a>
+    on 2016-09-30
+</p>
+
+<p>In my home project I work a lot with <strong>Raspberry Pi</strong>s running <strong>Windows 10 core IoT</strong> system. Recently I put up an RPi at home, and I wanted to be able to manage it remotely via the device portal and powershell, so I wanted to be updated about the external IP of my device. I didn't want to use any backend, neither a dynamic dns provider nor a server with a DB constantly updated so I wrote a little app that runs in the background and regularly checks if the external IP has changed, and notify me in email about it. It came out that this little project can be a field of experiencing and learning a lot!</p>
+<p>To make this app work, I created a list of that I'd need for it:</p>
+<ul>
+<li><a href="#background-task">creating UWP background task that runs continuosly</a></li>
+<li><a href="#config">handling config file locally with JSON</a></li>
+<li><a href="#external-ip">reading the content of a website that displays the external IP</a></li>
+<li><a href="#email">sending an email with SMTP</a></li>
+<li><a href="#periodic-run">running the process periodically</a></li>
+<li><a href="#retry">retrying if an exception occurs</a></li>
+</ul>
+<p>!!!! You can find the whole source code in my GitHub so I will show only parts of it here
+!!!!
+!!!! Repository: <a href="https://github.com/codernr/ipwatcher">https://github.com/codernr/ipwatcher</a></p>
+<h5 id="the-background-task">The background task <a id="background-task"></a></h5>
+<p>To create a Windows IoT background task, you have to create a class that implements the <code>IBackgroundTask</code> interface. To make it run continuosly, you have to take a deferral in the <code>Run</code> method from the given <code>IBackgroundTaskInstance</code> parameter:</p>
+<pre><code class="language-csharp">using Windows.ApplicationModel.Background;
+
+namespace IPWatcher
+{
+    public sealed class StartupTask : IBackgroundTask
+    {
+        private BackgroundTaskDeferral deferral;
+
+        public void Run(IBackgroundTaskInstance taskInstance)
+        {
+            this.deferral = taskInstance.GetDeferral();
+        }
+    }
+}
+</code></pre>
+<p>That's pretty much it!</p>
+<p>!!! Find a complete guide on background tasks on <a href="https://developer.microsoft.com/en-us/windows/iot/docs/backgroundapplications">the microsoft developer portal</a></p>
+<h5 id="the-config-file">The config file <a id="config"></a></h5>
+<p>I wrote a tiny singleton <code>Config</code> class with a bunch of public properties that were gonna be loaded from a config JSON. I had to create only two methods, <code>CreateInstance</code> that deserializes the app's <code>LocalState/config.json</code> to these properties and a <code>SaveInstance</code> that serializes the modified object back to JSON.</p>
+<p>!!! To easily serialize/deserialize objects from JSON you can use the <a href="https://www.nuget.org/packages/Newtonsoft.Json/">Newtonsoft.Json NuGet package</a></p>
+<p>I copy only the methods here, you can find the whole source on <a href="https://github.com/codernr/ipwatcher/blob/master/IPWatcher/Config.cs">GitHub</a></p>
+<pre><code class="language-csharp">using System;
+using System.Threading.Tasks;
+using Windows.Storage;
+
+public static async Task CreateInstance()
+{
+    file = await ApplicationData.Current.LocalFolder.GetFileAsync(fileName);
+
+    var content = await FileIO.ReadTextAsync(file);
+
+    Instance = JsonConvert.DeserializeObject&lt;Config&gt;(content);
+}
+
+public static async Task SaveInstance()
+{
+    var content = JsonConvert.SerializeObject(Instance, Formatting.Indented);
+
+    await FileIO.WriteTextAsync(file, content);
+}
+</code></pre>
+<p>!!! Read more about storing and retrieving app data <a href="https://msdn.microsoft.com/en-us/windows/uwp/app-settings/store-and-retrieve-app-data">on the MSDN site</a></p>
+<p>A sample <code>config.json</code> file looks like this:</p>
+<pre><code class="language-json">{
+  &quot;DeviceName&quot;: &quot;MyDeviceName&quot;,
+  &quot;UpdateHours&quot;: 12,
+  &quot;ExternalIPCheckAddress&quot;: &quot;http://icanhazip.com/&quot;,
+  &quot;Recipient&quot;: &quot;your.email@address.com&quot;,
+  &quot;SmtpServer&quot;: &quot;smtp.gmail.com&quot;,
+  &quot;Port&quot;: 465,
+  &quot;Ssl&quot;: true,
+  &quot;Username&quot;: &quot;sender.email@gmail.com&quot;,
+  &quot;Password&quot;: &quot;sender.password&quot;,
+  &quot;EmailSubject&quot;: &quot;Device IP changed!&quot;,
+  &quot;EmailBodyFormat&quot;: &quot;The IP address of {0} has changed to {1}&quot;,
+  &quot;RetryCount&quot;: 5,
+  &quot;RetryBaseSeconds&quot;: 3,
+  &quot;IpAddress&quot;: &quot;0.0.0.0&quot;
+}
+</code></pre>
+<p>As you can see, all of these parameters are preconfigured except the last one, the <code>IpAddress</code> that is going to be changed by the app.</p>
+<p>! Important: you have to manually put the config.json to the app LocalState folder, otherwise you will get a FileNotFoundException when instantiating the config object!</p>
+<h5 id="reading-the-external-ip">Reading the external IP <a id="external-ip"></a></h5>
+<p>The simplest way to get your external IP is to read a plain text &quot;what's my ip&quot; page like <a href="http://icanhazip.com/">http://icanhazip.com/</a>. To achieve this you can use the <code>HttpClient</code> class. I wanted to catch exceptions if there's any and return null so i called <code>EnsureSuccessStatusCode()</code> on the response object:</p>
+<pre><code class="language-csharp">using System.Threading.Tasks;
+using Windows.Web.Http;
+
+// ...
+
+private async Task&lt;string&gt; GetExternalIP()
+{
+	HttpClient client = new HttpClient();
+
+	string body;
+
+	try
+	{
+		var response = await client.GetAsync(new Uri(Config.Instance.ExternalIPCheckAddress));
+		response.EnsureSuccessStatusCode();
+		body = await response.Content.ReadAsStringAsync();
+		body = body.TrimEnd('\n');
+	}
+	catch (Exception ex)
+	{
+		Debug.WriteLine(ex.Message);
+		body = null;
+	}
+
+	return body;
+}
+</code></pre>
+<h5 id="sending-the-email">Sending the email <a id="email"></a></h5>
+<p>I couldn't use the <code>System.Net.Mail</code> namespace in my project since it is not part of the UWP platform. In a mobile UWP app you can only launch the default email app to compose a new message, you can't send it directly inside the app. So I searched for a solution and found the <a href="https://github.com/LightBuzz/SMTP-WinRT">LightBuzz WinRT SMTP client package</a> that solved my problem:</p>
+<pre><code class="language-csharp">using System.Threading.Tasks;
+using LightBuzz.SMTP;
+using Windows.ApplicationModel.Email;
+
+// ...
+
+private async Task SendMail(string ip)
+{
+	using (SmtpClient client = new SmtpClient(Config.Instance.SmtpServer, Config.Instance.Port, Config.Instance.Ssl, Config.Instance.Username, Config.Instance.Password))
+	{
+		EmailMessage message = new EmailMessage();
+
+		message.To.Add(new EmailRecipient(Config.Instance.Recipient));
+		message.Subject = Config.Instance.EmailSubject;
+		message.Body = string.Format(Config.Instance.EmailBodyFormat, Config.Instance.DeviceName, ip);
+
+		await client.SendMail(message);
+	}
+}
+</code></pre>
+<p>Just a few lines and I can send emails like Hillary Clinton!</p>
+<p>!! If you use Gmail SMTP you shoul keep in mind this (<a href="https://github.com/LightBuzz/SMTP-WinRT">as written on the package GitHub</a>):
+!!
+!! Since this does not use OAUTH2, Gmail considers this a &quot;less secure app&quot;.  To use this with Gmail, the &quot;Access for less secure apps&quot; setting on the account will have to be changed to &quot;Enable&quot;.</p>
+<h5 id="running-periodically">Running periodically <a id="periodic-run"></a></h5>
+<p>The external IP address doesn't change frequently so the it's enough to check it for example every 24 hour (by the way it's configurable through <code>config.json</code>). I concatenated the process (check IP / send email if changed) in a <code>Check</code> method and set a <code>ThreadPoolTimer</code> to run it periodically:</p>
+<pre><code class="language-csharp">using System.Diagnostics;
+using System.Threading.Tasks;
+using Windows.System.Threading;
+
+// ...
+
+public void Run(IBackgroundTaskInstance taskInstance)
+{
+	this.deferral = taskInstance.GetDeferral();
+
+	this.Initialize();
+}
+
+private async Task Initialize()
+{
+	// config has to be created asynchronously because of the file read
+	await Config.CreateInstance();
+
+	// running check for the first time
+	this.Check();
+
+	// and then start the timer to call it periodically
+	ThreadPoolTimer.CreatePeriodicTimer(this.Check, TimeSpan.FromHours(Config.Instance.UpdateHours));
+}
+
+private async void Check(ThreadPoolTimer timer = null)
+{
+	var ip = await this.GetExternalIP();
+
+	// no IP address change, no notification
+	if (ip == Config.Instance.IpAddress)
+	{
+		Debug.WriteLine(&quot;IP address hasn't changed, returning&quot;);
+		return;
+	}
+
+	await this.SendMail(ip);
+
+	// save new IP to config
+	Config.Instance.IpAddress = ip;
+
+	await Config.SaveInstance();
+}
+</code></pre>
+<h5 id="handling-exceptions">Handling exceptions <a id="retry"></a></h5>
+<p>I have two points in the application where it uses network connection, checking the IP and sending the mail. If there is network connection, there is error source so it should be handled. There are a lot of articles about <em>transient fault handling</em> <a href="https://msdn.microsoft.com/en-us/library/hh680901(v=pandp.50).aspx">I recommend this MSDN article</a> if you're new to this topic.</p>
+<p>So back to the app, I had two cases where a retry policy is useful if any exception occurs (e.g. no internet connection at the moment). I didn't use the Microsoft Transient Fault Handling Application Block from the above mentioned article, but chose the Polly Nuget package that seems a bit more user friendly to me.</p>
+<p>!!! Visit the Polly GitHub page for documentation: <a href="https://github.com/App-vNext/Polly">https://github.com/App-vNext/Polly</a></p>
+<p>Let's see the extended <code>Check</code> method with Polly:</p>
+<pre><code class="language-csharp">using System.Diagnostics;
+using System.Threading.Tasks;
+using Polly;
+
+// ...
+
+private async void Check(ThreadPoolTimer timer = null)
+{
+	var ip = await Policy
+		.HandleResult&lt;string&gt;(s =&gt; s == null)
+		.WaitAndRetryAsync&lt;string&gt;(Config.Instance.RetryCount, this.RetryExponential, this.LogIPRetry)
+		.ExecuteAsync(this.GetExternalIP);
+
+	// if the ip is still null after the retries, wait for the next cycle
+	if (ip == null)
+	{
+		Debug.WriteLine(&quot;All IP check attempt failed, wait for next cycle&quot;);
+		return;
+	}
+
+	// no IP address change, no notification
+	if (ip == Config.Instance.IpAddress)
+	{
+		Debug.WriteLine(&quot;IP address hasn't changed, returning&quot;);
+		return;
+	}
+
+	var policyResult = await Policy
+		.Handle&lt;Exception&gt;()
+		.WaitAndRetryAsync(Config.Instance.RetryCount, this.RetryExponential, this.LogMailRetry)
+		.ExecuteAndCaptureAsync(() =&gt; this.SendMail(ip));
+
+	// email send fail, wait for next cycle
+	if (policyResult.Outcome == OutcomeType.Failure)
+	{
+		Debug.WriteLine(&quot;All mail send attempt failed, wait for next cycle&quot;);
+		return;
+	}
+
+	// success, save new IP to config
+	Config.Instance.IpAddress = ip;
+
+	await Config.SaveInstance();
+}
+
+// ...
+
+private TimeSpan RetryExponential(int retryAttempt)
+{
+	return TimeSpan.FromSeconds(Math.Pow(Config.Instance.RetryBaseSeconds, retryAttempt));
+}
+
+private async Task LogIPRetry(DelegateResult&lt;string&gt; result, TimeSpan time, int retryCount, Context onRetry)
+{
+	Debug.WriteLine(&quot;{0}. Failed IP check attempt, retrying in {1}&quot;, retryCount, time);
+}
+
+private async Task LogMailRetry(Exception ex, TimeSpan time)
+{
+	Debug.WriteLine(&quot;Failed email send attempt, retrying in {0}&quot;, time);
+}
+</code></pre>
+<p>Let's see first the <code>RetryExponential</code> method: this is the provider method that tells the retry policy after how much time it has to retry the operation. I implemented a basic exponential back-off strategy meaning that the waiting time grows exponentially after each retrial.</p>
+<p>So first I defined the retry policy for my <code>GetExternalIP</code> method. There is a try/catch block inside the method so all the exceptions are caught inside it, and the only sign of a failed operation is a null return value. Fortunately Polly has a <code>HandleResult</code> method that can check the return value and decide if it is null and if it has to rerun the method. If you disable your internet connection and run the app you can see the retrial process yourself. Assuming that you set 2 seconds for <code>Config.RetryBaseSeconds</code> and 4 for <code>Config.RetryCount</code> it seems something like this:</p>
+<ol>
+<li>calling <code>GetExternalIP</code></li>
+<li>returns null, policy waits for 2^1 = 2 seconds</li>
+<li>calling <code>GetExternalIP</code></li>
+<li>returns null, policy waits for 2^2 = 4 seconds</li>
+<li>calling <code>GetExternalIP</code></li>
+<li>returns null, policy waits for 2^3 = 8 seconds</li>
+<li>calling <code>GetExternalIP</code></li>
+<li>returns null, policy waits for 2^4 = 16 seconds</li>
+<li>calling <code>GetExternalIP</code></li>
+</ol>
+<p>If the last attempt returns null, it is passed to variable <code>ip</code> and the <code>Check</code> method returns and the app starts waiting for the next <code>Check</code> call from <code>ThreadPoolTimer</code>.</p>
+<p>If the IP was returned properly and it is different, it tries to send the email with the new address. There is no try/catch block in the <code>SendMail</code> method so if there any exception, it is thrown directly so here I could use the <code>HandleException</code> method to trigger the retry process. Here I have to decide if the process was successful so <code>ExecuteAndCaptureAsync</code> instead of <code>ExecuteAsync</code> to return a <code>PolicyResult</code> object. If even the last retry failed with an exception, it will have the <code>OutcomeType.Failure</code> value in it so the <code>Check</code> returns and app waits for next cycle. If everything's OK, the mail is sent and the config object can be saved with the new IP.</p>
+<p>So this is my little IP-email-updater app, <a href="https://github.com/codernr/ipwatcher">clone it from GitHub</a> and feel free to use it in your own projects!</p>
+
+            </div>
+        </div>
+    </div>
+
+    <hr>
+
+    <!-- Footer -->
+    <footer>
+        <div class="container">
+            <div class="row">
+                <div class="col-lg-8 col-md-10 mx-auto">
+                    <ul class="list-inline text-center">
+                        <li class="list-inline-item">
+                            <a href="https://www.linkedin.com/in/zolt%C3%A1n-cs%C3%B3r%C3%A9-12a92365/">
+                                <span class="fa-stack fa-lg">
+                                    <i class="fas fa-circle fa-stack-2x"></i>
+                                    <i class="fab fa-linkedin-in fa-stack-1x fa-inverse"></i>
+                                </span>
+                            </a>
+                        </li>
+                        <li class="list-inline-item">
+                            <a href="https://github.com/codernr">
+                                <span class="fa-stack fa-lg">
+                                    <i class="fas fa-circle fa-stack-2x"></i>
+                                    <i class="fab fa-github fa-stack-1x fa-inverse"></i>
+                                </span>
+                            </a>
+                        </li>
+                    </ul>
+                    <p class="copyright text-muted">Copyright &copy; Your Website 2019</p>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Bootstrap core JavaScript -->
+    <script src="/assets/vendor/jquery/jquery.min.js"></script>
+    <script src="/assets/vendor/bootstrap/js/bootstrap.bundle.min.js"></script>
+
+    <!-- Custom scripts for this template -->
+    <script src="/assets/js/clean-blog.min.js"></script>
+
+</body>
+
+</html>
