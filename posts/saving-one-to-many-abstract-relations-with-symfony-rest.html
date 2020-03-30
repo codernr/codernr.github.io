@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <meta name="description" content="">
+    <meta name="author" content="">
+
+    <title>CODE.RNR | Saving One-To-Many abstract relations with Symfony REST</title>
+
+    <!-- Bootstrap core CSS -->
+    <link href="/assets/vendor/bootstrap/css/bootstrap.min.css" rel="stylesheet">
+
+    <!-- Custom fonts for this template -->
+    <link href="/assets/vendor/fontawesome-free/css/all.min.css" rel="stylesheet" type="text/css">
+    <link href='https://fonts.googleapis.com/css?family=Roboto:400,700,400italic,700italic' rel='stylesheet'
+        type='text/css'>
+    <link
+        href='https://fonts.googleapis.com/css?family=Montserrat:300italic,400italic,600italic,700italic,800italic,400,300,600,700,800'
+        rel='stylesheet' type='text/css'>
+    <link rel="stylesheet" href="/assets/vendor/highlight.js/styles/dracula.css">
+    <!-- Custom styles for this template -->
+    <link href="/assets/css/clean-blog.min.css" rel="stylesheet">
+
+    <script src="/assets/vendor/highlight.js/highlight.pack.js"></script>
+    <script>hljs.initHighlightingOnLoad();</script>
+
+</head>
+
+<body>
+
+    <!-- Navigation -->
+    <nav class="navbar navbar-expand-lg navbar-dark fixed-top" id="mainNav">
+        <div class="container">
+            <a class="navbar-brand" href="/">CODE.RNR</a>
+            <button class="navbar-toggler navbar-toggler-right" type="button" data-toggle="collapse"
+                data-target="#navbarResponsive" aria-controls="navbarResponsive" aria-expanded="false"
+                aria-label="Toggle navigation">
+                Menu
+                <i class="fas fa-bars"></i>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarResponsive">
+                <ul class="navbar-nav ml-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="/contact">Contact</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/about">about</a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Page Header -->
+    <header class="masthead" style="background-image: url('/assets/img/main.png')">
+        <div class="overlay"></div>
+        <div class="container">
+            <div class="row">
+                <div class="col-lg-8 col-md-10 mx-auto">
+                    <div class="site-heading">
+                        <h1>CODE.RNR</h1>
+                        <span class="subheading">Learn, code, rock'n'roll</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <div class="container">
+        <div class="row">
+            <div class="col-lg-8 col-md-10 mx-auto">
+                <h2>Saving One-To-Many abstract relations with Symfony REST</h2>
+<div>
+    <span class="tags">
+        <a href="/tags/php">PHP</a>
+        <a href="/tags/symfony">Symfony</a>
+        <a href="/tags/rest">REST</a>
+        <a href="/tags/fosrestbundle">FOSRestBundle</a>
+        <a href="/tags/jmsserializerbundle">JMSSerializerBundle</a>
+    </span>
+</div>
+<p class="post-meta">Posted by
+    <a href="/about">codernr</a>
+    on 2016-09-25
+</p>
+
+<p>I'm working on a Symfony REST project at my company as we speak, and I've come across an interesting problem when I tried to save a new entity and its related abstract entities using <strong>request body converter</strong>. The problem was that, when posting a JSON object to a REST controller with related one-to-many abstract entities, the <strong>JMSSerializer</strong> doesn't know how to deserialize those. Let's see an example!</p>
+<p>I created a little sample Symfony project with <strong>FOSRestBundle</strong> and <strong>JMSSerializerBundle</strong> to demonstrate the situation. I have a <code>Person</code> entity that has multiple <code>Instrument</code> entities in a OneToMany relationship, but the <code>Instrument</code> itself is an abstract class with single table inheritance. It has two child types, <code>GuitarInstrument</code> and <code>DrumsInstrument</code>. Here are the classes:</p>
+<pre><code class="language-php">namespace AppBundle\Entity;
+
+use Doctrine\Common\Collections\ArrayCollection;
+use Doctrine\ORM\Mapping as ORM;
+
+/**
+ * Person
+ *
+ * @ORM\Table(name=&quot;person&quot;)
+ * @ORM\Entity()
+ */
+class Person
+{
+    /**
+     * @var int
+     *
+     * @ORM\Column(name=&quot;id&quot;, type=&quot;integer&quot;)
+     * @ORM\Id
+     * @ORM\GeneratedValue(strategy=&quot;AUTO&quot;)
+     */
+    private $id;
+
+    /**
+     * @var string
+     *
+     * @ORM\Column(name=&quot;name&quot;, type=&quot;string&quot;, length=255)
+     */
+    private $name;
+
+    /**
+     * @var ArrayCollection
+     *
+     * @ORM\OneToMany(targetEntity=&quot;Instrument&quot;, mappedBy=&quot;person&quot;, cascade={&quot;persist&quot;, &quot;remove&quot;})
+     */
+    private $instruments;
+    
+    // ... boring getters and setters
+}
+
+/**
+ * Instrument
+ *
+ * @ORM\Entity()
+ * @ORM\InheritanceType(&quot;SINGLE_TABLE&quot;)
+ * @ORM\DiscriminatorColumn(name=&quot;type&quot;, type=&quot;string&quot;)
+ * @ORM\DiscriminatorMap({
+ *     &quot;guitar&quot;     = &quot;GuitarInstrument&quot;,
+ *     &quot;drums&quot;    = &quot;DrumsInstrument&quot;
+ * })
+ */
+abstract class Instrument
+{
+    /**
+     * @var int
+     *
+     * @ORM\Column(name=&quot;id&quot;, type=&quot;integer&quot;)
+     * @ORM\Id
+     * @ORM\GeneratedValue(strategy=&quot;AUTO&quot;)
+     */
+    protected $id;
+
+    /**
+     * @var string
+     *
+     * @ORM\Column(name=&quot;name&quot;, type=&quot;string&quot;, length=255)
+     */
+    protected $name;
+
+    /**
+     * @var Person
+     *
+     * @ORM\ManyToOne(targetEntity=&quot;Person&quot;, inversedBy=&quot;instruments&quot;)
+     */
+    protected $person;
+    
+    //...
+}
+
+/**
+ * GuitarInstrument
+ *
+ * @ORM\Table(name=&quot;guitar_instrument&quot;)
+ * @ORM\Entity()
+ */
+class GuitarInstrument extends Instrument
+{
+    /**
+     * @var int
+     *
+     * @ORM\Column(name=&quot;strings&quot;, type=&quot;integer&quot;)
+     */
+    private $strings;
+    
+    // ...
+}
+
+/**
+ * DrumsInstrument
+ *
+ * @ORM\Table(name=&quot;drums_instrument&quot;)
+ * @ORM\Entity()
+ */
+class DrumsInstrument extends Instrument
+{
+    /**
+     * @var string
+     *
+     * @ORM\Column(name=&quot;snare&quot;, type=&quot;string&quot;, length=255)
+     */
+    private $snare;
+    
+    // ...
+}
+</code></pre>
+<p>!!! Notice the <code>cascade={&quot;persist&quot;, &quot;remove&quot;}</code> parameter in the <code>Person</code>'s <code>$instruments</code> annotation, using this, when a <code>Person</code> object is persisted to database, the related <code>Instrument</code> objects are persisted too</p>
+<p>Then I created a REST resource controller for my <code>Person</code> entity:</p>
+<p>! If you need some information about how to set up a REST api with Symfony, you should <a href="http://symfony.com/doc/current/bundles/FOSRestBundle/index.html">check out the documentation</a></p>
+<pre><code class="language-php">namespace AppBundle\Controller;
+
+use FOS\RestBundle\Routing\ClassResourceInterface;
+use FOS\RestBundle\Controller\FOSRestController;
+use FOS\RestBundle\Controller\Annotations as FOSRestBundleAnnotations;
+use FOS\RestBundle\View\View;
+use AppBundle\Entity\Person;
+use Sensio\Bundle\FrameworkExtraBundle\Configuration\ParamConverter;
+use Symfony\Component\HttpFoundation\Response;
+
+/**
+ * Class PersonsController
+ * @package AppBundle\Controller
+ *
+ * @FOSRestBundleAnnotations\View()
+ */
+class PersonsController extends FOSRestController implements ClassResourceInterface
+{
+    public function cgetAction()
+    {
+        $em = $this-&gt;getDoctrine()-&gt;getManager();
+
+        $users = $em-&gt;getRepository('AppBundle:Person')-&gt;findAll();
+
+        return $users;
+    }
+
+    /**
+     * @param Person $person
+     * @return View
+     * @internal param Person $person
+     *
+     * @FOSRestBundleAnnotations\Post(&quot;/persons&quot;)
+     * @ParamConverter(&quot;person&quot;, converter=&quot;fos_rest.request_body&quot;)
+     */
+    public function postAction(Person $person)
+    {
+        $manager = $this-&gt;getDoctrine()-&gt;getManager();
+        $manager-&gt;persist($person);
+        $manager-&gt;flush();
+
+        return View::create($person, Response::HTTP_CREATED);
+    }
+}
+</code></pre>
+<p>As you can see here, I made a <code>postAction</code> that gets a <code>Person</code> object as parameter, thaks to the <code>@ParamConverter</code> annotation. This means that I can send a POST request with a JSON body containing the <code>Person</code> object data I want to save, and the request body converter automatically deserializes it into a <code>Person</code> object.</p>
+<p>So let's post a JSON person object to this controller:</p>
+<pre><code class="language-json">{
+  	&quot;name&quot;: &quot;Dave Grohl&quot;,
+  	&quot;instruments&quot;: [
+      	{
+        	&quot;type&quot;: &quot;guitar&quot;,
+          	&quot;name&quot;: &quot;Dave's incredibly kick-ass PRS&quot;,
+          	&quot;strings&quot;: 6
+        },
+      	{
+          	&quot;type&quot;: &quot;drums&quot;,
+          	&quot;name&quot;: &quot;Dave's incredibly kick-ass DW&quot;,
+          	&quot;snare&quot;: &quot;DW 14x6.5&quot;
+        }
+   	]
+}
+</code></pre>
+<p>Posting this, we get a HTTP 400 error code with the message: <em>You must define a type for AppBundle\Entity\Person::$instruments.</em></p>
+<p>This is because we posted an <code>instruments</code> array in the JSON object with different types of objects (<code>GuitarInstrument</code>, <code>DrumsInstrument</code>). The <strong>JMSSerializerBundle</strong> can't figure out how to deserialize this array so we have to tell it explicitly by using the <code>@Type</code> annotation in the <code>Person</code> entity:</p>
+<pre><code class="language-php">use JMS\Serializer\Annotation as JMS;
+
+// ...
+
+	/**
+     * @var ArrayCollection
+     *
+     * @ORM\OneToMany(targetEntity=&quot;Instrument&quot;, mappedBy=&quot;person&quot;, cascade={&quot;persist&quot;, &quot;remove&quot;})
+     * @JMS\Type(&quot;ArrayCollection&lt;AppBundle\Entity\Instrument&gt;&quot;)
+     */
+    private $instruments;
+    
+// ...
+
+</code></pre>
+<p>Using this one line solves our problem, and posting the previous JSON we get a HTTP 201 message with the created entities!</p>
+<p>!!! You can check out th <code>@Type</code> annotation reference <a href="http://jmsyst.com/libs/serializer/master/reference/annotations#type">here</a></p>
+
+            </div>
+        </div>
+    </div>
+
+    <hr>
+
+    <!-- Footer -->
+    <footer>
+        <div class="container">
+            <div class="row">
+                <div class="col-lg-8 col-md-10 mx-auto">
+                    <ul class="list-inline text-center">
+                        <li class="list-inline-item">
+                            <a href="https://www.linkedin.com/in/zolt%C3%A1n-cs%C3%B3r%C3%A9-12a92365/">
+                                <span class="fa-stack fa-lg">
+                                    <i class="fas fa-circle fa-stack-2x"></i>
+                                    <i class="fab fa-linkedin-in fa-stack-1x fa-inverse"></i>
+                                </span>
+                            </a>
+                        </li>
+                        <li class="list-inline-item">
+                            <a href="https://github.com/codernr">
+                                <span class="fa-stack fa-lg">
+                                    <i class="fas fa-circle fa-stack-2x"></i>
+                                    <i class="fab fa-github fa-stack-1x fa-inverse"></i>
+                                </span>
+                            </a>
+                        </li>
+                    </ul>
+                    <p class="copyright text-muted">Copyright &copy; Your Website 2019</p>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Bootstrap core JavaScript -->
+    <script src="/assets/vendor/jquery/jquery.min.js"></script>
+    <script src="/assets/vendor/bootstrap/js/bootstrap.bundle.min.js"></script>
+
+    <!-- Custom scripts for this template -->
+    <script src="/assets/js/clean-blog.min.js"></script>
+
+</body>
+
+</html>
