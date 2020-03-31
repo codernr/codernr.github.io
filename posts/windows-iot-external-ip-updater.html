@@ -98,9 +98,10 @@
 <li><a href="#periodic-run">running the process periodically</a></li>
 <li><a href="#retry">retrying if an exception occurs</a></li>
 </ul>
-<p>!!!! You can find the whole source code in my GitHub so I will show only parts of it here
-!!!!
-!!!! Repository: <a href="https://github.com/codernr/ipwatcher">https://github.com/codernr/ipwatcher</a></p>
+<blockquote>
+<p>You can find the whole source code in my GitHub so I will show only parts of it here</p>
+<p>Repository: <a href="https://github.com/codernr/ipwatcher">https://github.com/codernr/ipwatcher</a></p>
+</blockquote>
 <h5 id="the-background-task">The background task <a id="background-task"></a></h5>
 <p>To create a Windows IoT background task, you have to create a class that implements the <code>IBackgroundTask</code> interface. To make it run continuosly, you have to take a deferral in the <code>Run</code> method from the given <code>IBackgroundTaskInstance</code> parameter:</p>
 <pre><code class="language-csharp">using Windows.ApplicationModel.Background;
@@ -119,10 +120,14 @@ namespace IPWatcher
 }
 </code></pre>
 <p>That's pretty much it!</p>
-<p>!!! Find a complete guide on background tasks on <a href="https://developer.microsoft.com/en-us/windows/iot/docs/backgroundapplications">the microsoft developer portal</a></p>
+<blockquote>
+<p>Find a complete guide on background tasks on <a href="https://developer.microsoft.com/en-us/windows/iot/docs/backgroundapplications">the microsoft developer portal</a></p>
+</blockquote>
 <h5 id="the-config-file">The config file <a id="config"></a></h5>
 <p>I wrote a tiny singleton <code>Config</code> class with a bunch of public properties that were gonna be loaded from a config JSON. I had to create only two methods, <code>CreateInstance</code> that deserializes the app's <code>LocalState/config.json</code> to these properties and a <code>SaveInstance</code> that serializes the modified object back to JSON.</p>
-<p>!!! To easily serialize/deserialize objects from JSON you can use the <a href="https://www.nuget.org/packages/Newtonsoft.Json/">Newtonsoft.Json NuGet package</a></p>
+<blockquote>
+<p>To easily serialize/deserialize objects from JSON you can use the <a href="https://www.nuget.org/packages/Newtonsoft.Json/">Newtonsoft.Json NuGet package</a></p>
+</blockquote>
 <p>I copy only the methods here, you can find the whole source on <a href="https://github.com/codernr/ipwatcher/blob/master/IPWatcher/Config.cs">GitHub</a></p>
 <pre><code class="language-csharp">using System;
 using System.Threading.Tasks;
@@ -144,7 +149,9 @@ public static async Task SaveInstance()
     await FileIO.WriteTextAsync(file, content);
 }
 </code></pre>
-<p>!!! Read more about storing and retrieving app data <a href="https://msdn.microsoft.com/en-us/windows/uwp/app-settings/store-and-retrieve-app-data">on the MSDN site</a></p>
+<blockquote>
+<p>Read more about storing and retrieving app data <a href="https://msdn.microsoft.com/en-us/windows/uwp/app-settings/store-and-retrieve-app-data">on the MSDN site</a></p>
+</blockquote>
 <p>A sample <code>config.json</code> file looks like this:</p>
 <pre><code class="language-json">{
   &quot;DeviceName&quot;: &quot;MyDeviceName&quot;,
@@ -164,7 +171,9 @@ public static async Task SaveInstance()
 }
 </code></pre>
 <p>As you can see, all of these parameters are preconfigured except the last one, the <code>IpAddress</code> that is going to be changed by the app.</p>
-<p>! Important: you have to manually put the config.json to the app LocalState folder, otherwise you will get a FileNotFoundException when instantiating the config object!</p>
+<blockquote>
+<p>Important: you have to manually put the config.json to the app LocalState folder, otherwise you will get a FileNotFoundException when instantiating the config object!</p>
+</blockquote>
 <h5 id="reading-the-external-ip">Reading the external IP <a id="external-ip"></a></h5>
 <p>The simplest way to get your external IP is to read a plain text &quot;what's my ip&quot; page like <a href="http://icanhazip.com/">http://icanhazip.com/</a>. To achieve this you can use the <code>HttpClient</code> class. I wanted to catch exceptions if there's any and return null so i called <code>EnsureSuccessStatusCode()</code> on the response object:</p>
 <pre><code class="language-csharp">using System.Threading.Tasks;
@@ -217,9 +226,10 @@ private async Task SendMail(string ip)
 }
 </code></pre>
 <p>Just a few lines and I can send emails like Hillary Clinton!</p>
-<p>!! If you use Gmail SMTP you shoul keep in mind this (<a href="https://github.com/LightBuzz/SMTP-WinRT">as written on the package GitHub</a>):
-!!
-!! Since this does not use OAUTH2, Gmail considers this a &quot;less secure app&quot;.  To use this with Gmail, the &quot;Access for less secure apps&quot; setting on the account will have to be changed to &quot;Enable&quot;.</p>
+<blockquote>
+<p>If you use Gmail SMTP you shoul keep in mind this (<a href="https://github.com/LightBuzz/SMTP-WinRT">as written on the package GitHub</a>):</p>
+<p>Since this does not use OAUTH2, Gmail considers this a &quot;less secure app&quot;.  To use this with Gmail, the &quot;Access for less secure apps&quot; setting on the account will have to be changed to &quot;Enable&quot;.</p>
+</blockquote>
 <h5 id="running-periodically">Running periodically <a id="periodic-run"></a></h5>
 <p>The external IP address doesn't change frequently so the it's enough to check it for example every 24 hour (by the way it's configurable through <code>config.json</code>). I concatenated the process (check IP / send email if changed) in a <code>Check</code> method and set a <code>ThreadPoolTimer</code> to run it periodically:</p>
 <pre><code class="language-csharp">using System.Diagnostics;
@@ -269,7 +279,9 @@ private async void Check(ThreadPoolTimer timer = null)
 <h5 id="handling-exceptions">Handling exceptions <a id="retry"></a></h5>
 <p>I have two points in the application where it uses network connection, checking the IP and sending the mail. If there is network connection, there is error source so it should be handled. There are a lot of articles about <em>transient fault handling</em> <a href="https://msdn.microsoft.com/en-us/library/hh680901(v=pandp.50).aspx">I recommend this MSDN article</a> if you're new to this topic.</p>
 <p>So back to the app, I had two cases where a retry policy is useful if any exception occurs (e.g. no internet connection at the moment). I didn't use the Microsoft Transient Fault Handling Application Block from the above mentioned article, but chose the Polly Nuget package that seems a bit more user friendly to me.</p>
-<p>!!! Visit the Polly GitHub page for documentation: <a href="https://github.com/App-vNext/Polly">https://github.com/App-vNext/Polly</a></p>
+<blockquote>
+<p>Visit the Polly GitHub page for documentation: <a href="https://github.com/App-vNext/Polly">https://github.com/App-vNext/Polly</a></p>
+</blockquote>
 <p>Let's see the extended <code>Check</code> method with Polly:</p>
 <pre><code class="language-csharp">using System.Diagnostics;
 using System.Threading.Tasks;

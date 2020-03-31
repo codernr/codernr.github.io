@@ -204,9 +204,13 @@ class DrumsInstrument extends Instrument
     // ...
 }
 </code></pre>
-<p>!!! Notice the <code>cascade={&quot;persist&quot;, &quot;remove&quot;}</code> parameter in the <code>Person</code>'s <code>$instruments</code> annotation, using this, when a <code>Person</code> object is persisted to database, the related <code>Instrument</code> objects are persisted too</p>
+<blockquote>
+<p>Notice the <code>cascade={&quot;persist&quot;, &quot;remove&quot;}</code> parameter in the <code>Person</code>'s <code>$instruments</code> annotation, using this, when a <code>Person</code> object is persisted to database, the related <code>Instrument</code> objects are persisted too</p>
+</blockquote>
 <p>Then I created a REST resource controller for my <code>Person</code> entity:</p>
-<p>! If you need some information about how to set up a REST api with Symfony, you should <a href="http://symfony.com/doc/current/bundles/FOSRestBundle/index.html">check out the documentation</a></p>
+<blockquote>
+<p>If you need some information about how to set up a REST api with Symfony, you should <a href="http://symfony.com/doc/current/bundles/FOSRestBundle/index.html">check out the documentation</a></p>
+</blockquote>
 <pre><code class="language-php">namespace AppBundle\Controller;
 
 use FOS\RestBundle\Routing\ClassResourceInterface;
@@ -288,7 +292,9 @@ class PersonsController extends FOSRestController implements ClassResourceInterf
 
 </code></pre>
 <p>Using this one line solves our problem, and posting the previous JSON we get a HTTP 201 message with the created entities!</p>
-<p>!!! You can check out th <code>@Type</code> annotation reference <a href="http://jmsyst.com/libs/serializer/master/reference/annotations#type">here</a></p>
+<blockquote>
+<p>You can check out th <code>@Type</code> annotation reference <a href="http://jmsyst.com/libs/serializer/master/reference/annotations#type">here</a></p>
+</blockquote>
 
             </div>
         </div>
