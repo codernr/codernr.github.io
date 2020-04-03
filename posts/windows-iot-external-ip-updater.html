@@ -370,6 +370,8 @@ private async Task LogMailRetry(Exception ex, TimeSpan time)
 <p>If the IP was returned properly and it is different, it tries to send the email with the new address. There is no try/catch block in the <code>SendMail</code> method so if there any exception, it is thrown directly so here I could use the <code>HandleException</code> method to trigger the retry process. Here I have to decide if the process was successful so <code>ExecuteAndCaptureAsync</code> instead of <code>ExecuteAsync</code> to return a <code>PolicyResult</code> object. If even the last retry failed with an exception, it will have the <code>OutcomeType.Failure</code> value in it so the <code>Check</code> returns and app waits for next cycle. If everything's OK, the mail is sent and the config object can be saved with the new IP.</p>
 <p>So this is my little IP-email-updater app, <a href="https://github.com/codernr/ipwatcher">clone it from GitHub</a> and feel free to use it in your own projects!</p>
 
+
+
             </div>
         </div>
     </div>
@@ -420,6 +422,7 @@ private async Task LogMailRetry(Exception ex, TimeSpan time)
     <!-- Custom scripts for this template -->
     <script src="/assets/js/clean-blog.min.js"></script>
 
+    
 </body>
 
 </html>
