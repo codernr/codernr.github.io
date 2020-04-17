@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <!-- Global site tag (gtag.js) - Google Analytics -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=UA-84292267-2"></script>
+    <script>
+        window.dataLayer = window.dataLayer || [];
+        function gtag(){dataLayer.push(arguments);}
+        gtag('js', new Date());
+
+        gtag('config', 'UA-84292267-2');
+    </script>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <meta name="description" content="">
+    <meta name="author" content="">
+
+    <title>CODE.RNR | Render Razor view from a dotnet core 3 app</title>
+
+    <!-- Bootstrap core CSS -->
+    <link href="/assets/vendor/bootstrap/css/bootstrap.min.css" rel="stylesheet">
+
+    <!-- Custom fonts for this template -->
+    <link href="/assets/vendor/fontawesome-free/css/all.min.css" rel="stylesheet" type="text/css">
+    <link href='https://fonts.googleapis.com/css?family=Roboto:400,700,400italic,700italic' rel='stylesheet'
+        type='text/css'>
+    <link
+        href='https://fonts.googleapis.com/css?family=Montserrat:300italic,400italic,600italic,700italic,800italic,400,300,600,700,800'
+        rel='stylesheet' type='text/css'>
+    <link rel="stylesheet" href="/assets/vendor/highlight.js/styles/dracula.css">
+    <!-- Custom styles for this template -->
+    <link href="/assets/css/clean-blog.min.css" rel="stylesheet">
+
+    <script src="/assets/vendor/highlight.js/highlight.pack.js"></script>
+    <script>hljs.initHighlightingOnLoad();</script>
+
+    <meta property="og:image" content="/assets/img/og-image.png" />
+    <meta property="og:description" content="Razor views a strongly coupled to aspnet core mvc but you can use them in a console app with this minimum setup." />
+
+</head>
+
+<body>
+
+    <!-- Navigation -->
+    <nav class="navbar navbar-expand-lg navbar-dark fixed-top" id="mainNav">
+        <div class="container">
+            <a class="navbar-brand" href="/">CODE.RNR</a>
+            <button class="navbar-toggler navbar-toggler-right" type="button" data-toggle="collapse"
+                data-target="#navbarResponsive" aria-controls="navbarResponsive" aria-expanded="false"
+                aria-label="Toggle navigation">
+                Menu
+                <i class="fas fa-bars"></i>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarResponsive">
+                <ul class="navbar-nav ml-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="/about">About</a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Page Header -->
+    <header class="masthead" style="background-image: url('/assets/img/main.png')">
+        <div class="overlay"></div>
+        <div class="container">
+            <div class="row">
+                <div class="col-lg-8 col-md-10 mx-auto">
+                    <div class="site-heading">
+                        <h1>CODE.RNR</h1>
+                        <span class="subheading">Learn, code, rock'n'roll</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <div class="container">
+        <div class="row">
+            <div class="col-lg-8 col-md-10 mx-auto">
+                <h2>Render Razor view from a dotnet core 3 app</h2>
+<div>
+    <span class="tags">
+        <a href="/tags/dotnet-core">dotnet core</a>
+        <a href="/tags/razor">razor</a>
+        <a href="/tags/aspnet-mvc">aspnet mvc</a>
+        <a href="/tags/console-application">console application</a>
+    </span>
+</div>
+<p class="post-meta">Posted by
+    <a href="/about">codernr</a>
+    on 2020-04-17 12:45
+</p>
+
+<p>My colleague and I were wondering how we could use our existing, predefined Razor views in a console application that is ran to do some background job. Typical use case: automated regular email sending. We were searching for the solution but all we found were examples of this case in <strong>dotnet core 2.1</strong>. So we had to do some investigation on how to upgrade to <strong>netcoreapp3.1</strong>.</p>
+<p>The example project was one of the <a href="https://github.com/aspnet/Entropy">aspnet entropy</a> experimental repository: <a href="https://github.com/aspnet/Entropy/tree/master/samples/Mvc.RenderViewToString">https://github.com/aspnet/Entropy/tree/master/samples/Mvc.RenderViewToString</a></p>
+<p>You can find the source of the updated project in my repo: <a href="https://github.com/codernr/dotnet-mvc-renderviewtostring">https://github.com/codernr/dotnet-mvc-renderviewtostring</a></p>
+<h3 id="differences">Differences</h3>
+<p>Long story short, you can see all the changes needed to be made <a href="https://github.com/codernr/dotnet-mvc-renderviewtostring/commit/b852f6d48f65dcb608f3bb007934117a6e41bc05">in this commit</a>. But let's see the inside:</p>
+<h4 id="the.csproj-file">The .csproj file</h4>
+<p>As the <a href="https://docs.microsoft.com/en-us/aspnet/core/fundamentals/target-aspnetcore?view=aspnetcore-3.1&amp;tabs=visual-studio#razor-views-or-razor-pages">documentation says</a>, <em>A project that includes Razor views or Razor Pages must use the Microsoft.NET.Sdk.Razor SDK.</em> In addition you have to set <code>AddRazorSupportForMvc</code> property to <code>true</code> and include the <code>FrameworkReference</code> for the <a href="https://docs.microsoft.com/en-us/aspnet/core/fundamentals/metapackage-app?view=aspnetcore-3.1">1shared framework</a>. The whole .csproj file looks like this:</p>
+<pre><code class="language-xml">&lt;Project Sdk=&quot;Microsoft.NET.Sdk.Razor&quot;&gt;
+
+  &lt;PropertyGroup&gt;
+    &lt;OutputType&gt;exe&lt;/OutputType&gt;
+    &lt;TargetFramework&gt;netcoreapp3.1&lt;/TargetFramework&gt;
+    &lt;AddRazorSupportForMvc&gt;true&lt;/AddRazorSupportForMvc&gt;
+  &lt;/PropertyGroup&gt;
+
+  &lt;ItemGroup&gt;
+    &lt;FrameworkReference Include=&quot;Microsoft.AspNetCore.App&quot; /&gt;
+  &lt;/ItemGroup&gt;
+
+&lt;/Project&gt;
+</code></pre>
+<h4 id="the-main-program">The main program</h4>
+<p>The way you can configure <code>RazorViewEngine</code> has changed since dotnet core 2.1, now you can't set the <code>FileProvider</code> through <code>RazorViewEngineOptions</code>. This is set through <code>IWebHostEnvironment.ContentRootFileProvider</code>, where <code>IWebHostEnvironment</code> is the dependency that replaces the old <code>IHostingEnvironment</code> (you can check the diff <a href="https://github.com/codernr/dotnet-mvc-renderviewtostring/commit/b852f6d48f65dcb608f3bb007934117a6e41bc05#diff-34cffdae1474e839ffac88fe019a0155L74">here</a>). Since the implementing classes are internal, you have to create a custom implementation and add it to the service collection.</p>
+<p>There are two other changes in the DI configuration that are needed for the <code>RazorViewEngine</code> to work:</p>
+<ul>
+<li>A <code>DiagnosticListener</code></li>
+<li>And insted of <code>services.AddMvc()</code> it is enough to use <code>services.AddMvcCore().AddRazorViewEngine()</code> so you can reduce the registered services</li>
+</ul>
+<p>See the whole dependency injection container setup here:</p>
+<pre><code class="language-cs">private static void ConfigureDefaultServices(IServiceCollection services, string customApplicationBasePath)
+{
+    string applicationName;
+    string rootPath;
+
+    if (!string.IsNullOrEmpty(customApplicationBasePath))
+    {
+        applicationName = Path.GetFileName(customApplicationBasePath);
+        rootPath = customApplicationBasePath;
+    }
+    else
+    {
+        applicationName = Assembly.GetEntryAssembly().GetName().Name;
+        rootPath = Directory.GetCurrentDirectory();
+    }
+
+    var fileProvider = new PhysicalFileProvider(rootPath);
+
+    var environment = new CustomHostingEnvironment
+    {
+        WebRootFileProvider = fileProvider,
+        ApplicationName = applicationName,
+        ContentRootPath = rootPath,
+        WebRootPath = rootPath,
+        EnvironmentName = &quot;DEVELOPMENT&quot;,
+        ContentRootFileProvider = fileProvider
+    };
+
+    services.AddSingleton&lt;IWebHostEnvironment&gt;(environment);
+
+    var diagnosticSource = new DiagnosticListener(&quot;Microsoft.AspNetCore&quot;);
+    services.AddSingleton&lt;ObjectPoolProvider, DefaultObjectPoolProvider&gt;();
+    services.AddSingleton&lt;DiagnosticSource&gt;(diagnosticSource);
+    services.AddSingleton&lt;DiagnosticListener&gt;(diagnosticSource);
+    services.AddLogging();
+    services.AddMvcCore()
+        .AddRazorViewEngine();
+    services.AddTransient&lt;RazorViewToStringRenderer&gt;();
+}
+</code></pre>
+<p>Happy email sending!</p>
+
+
+<div id="disqus_thread"></div>
+<script>
+    var disqus_config = function () {
+        this.page.url = 'https://codernr.github.io';
+        this.page.identifier = 'codernr';
+    };
+
+    (function() { // DON'T EDIT BELOW THIS LINE
+    var d = document, s = d.createElement('script');
+    s.src = 'https://codernr.disqus.com/embed.js';
+    s.setAttribute('data-timestamp', +new Date());
+    (d.head || d.body).appendChild(s);
+    })();
+    </script>
+    <noscript>Please enable JavaScript to view the <a href="https://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>               
+
+            </div>
+        </div>
+    </div>
+
+    <hr>
+
+    <!-- Footer -->
+    <footer>
+        <div class="container">
+            <div class="row">
+                <div class="col-lg-8 col-md-10 mx-auto">
+                    <ul class="list-inline text-center">
+                        <li class="list-inline-item">
+                            <a href="https://www.linkedin.com/in/zolt%C3%A1n-cs%C3%B3r%C3%A9-12a92365/">
+                                <span class="fa-stack fa-lg">
+                                    <i class="fas fa-circle fa-stack-2x"></i>
+                                    <i class="fab fa-linkedin-in fa-stack-1x fa-inverse"></i>
+                                </span>
+                            </a>
+                        </li>
+                        <li class="list-inline-item">
+                            <a href="https://github.com/codernr">
+                                <span class="fa-stack fa-lg">
+                                    <i class="fas fa-circle fa-stack-2x"></i>
+                                    <i class="fab fa-github fa-stack-1x fa-inverse"></i>
+                                </span>
+                            </a>
+                        </li>
+                        <li class="list-inline-item">
+                            <a href="https://stackoverflow.com/story/codernr">
+                                <span class="fa-stack fa-lg">
+                                    <i class="fas fa-circle fa-stack-2x"></i>
+                                    <i class="fab fa-stack-overflow fa-stack-1x fa-inverse"></i>
+                                </span>
+                            </a>
+                        </li>
+                    </ul>
+                    <p class="copyright text-muted">Copyright &copy; Zoltán Csóré 2020</p>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Bootstrap core JavaScript -->
+    <script src="/assets/vendor/jquery/jquery.min.js"></script>
+    <script src="/assets/vendor/bootstrap/js/bootstrap.bundle.min.js"></script>
+
+    <!-- Custom scripts for this template -->
+    <script src="/assets/js/clean-blog.min.js"></script>
+
+    <script id="dsq-count-scr" src="//codernr.disqus.com/count.js" async></script>
+</body>
+
+</html>
