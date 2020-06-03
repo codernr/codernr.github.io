@@ -118,7 +118,7 @@ public class BasicServiceClient : IServiceClient
 }
 </code></pre>
 <h3 id="when-extra-functionality-is-needed">When extra functionality is needed</h3>
-<p>Let's say you have two different environments that need two different authentication method. One uses an api key that is sent in <code>X-Api-Key</code> header, the other uses a bearer token in the <code>Authentication</code> header. Then numerous headers must be set in each environment with different permutations, so inheritance is not an option to avoid repetiton, you have to use decorators for dynamically set every header. But for the sake of simplicity we use only those two decorators:</p>
+<p>Let's say you have two different environments that need two different authentication method. One uses an api key that is sent in <code>X-Api-Key</code> header, the other uses a bearer token in the <code>Authentication</code> header. Then numerous headers must be set in each environment with different permutations, so inheritance is not an option to avoid repetiton, you have to use decorators to dynamically set every header. But for the sake of simplicity we use only those two decorators:</p>
 <pre><code class="language-cs">public class ApiKeyServiceClient : IServiceClient
 {
     private readonly BasicServiceClient serviceClient;
@@ -137,7 +137,7 @@ public class BearerTokenServiceClient : IServiceClient
 {
     private readonly BasicServiceClient serviceClient;
 
-    public ApiKeyServiceClient(BasicServiceClient serviceClient) =&gt; this.serviceClient = serviceClient;
+    public BearerTokenServiceClient(BasicServiceClient serviceClient) =&gt; this.serviceClient = serviceClient;
 
     public Task&lt;HttpResponseMessage&gt; SendAsync(HttpRequestMessage message)
     {
@@ -181,7 +181,7 @@ public class BearerTokenServiceClient : IServiceClient
 {
     private readonly IServiceClient serviceClient;
 
-    public ApiKeyServiceClient(IServiceClient serviceClient) =&gt; this.serviceClient = serviceClient;
+    public BearerTokenServiceClient(IServiceClient serviceClient) =&gt; this.serviceClient = serviceClient;
 
     public Task&lt;HttpResponseMessage&gt; SendAsync(HttpRequestMessage message)
     {
@@ -191,7 +191,7 @@ public class BearerTokenServiceClient : IServiceClient
     }
 }
 </code></pre>
-<p>Now you can use them in any decorator chain, you could even use them together to add api key and bearer tokens to the same HttpRequestMessage. That doesn't make much sense in real world, but let's say you want all that headers now on the same message. Now you have to register <strong>three</strong> implementations of <strong>the same</strong> interface and you want them to be chained in an exactly defined order. ASP.NET Core dependency injection allows you to register multiple implementations with the same interface but then it won't figure out which to inject in which constructor so you have to explicitly define how they are injected.</p>
+<p>Now you can use them in any decorator chain, you could even use them together to add api key and bearer tokens to the same <code>HttpRequestMessage</code>. That doesn't make much sense in real world, but let's say you want all that headers now on the same message. Now you have to register <strong>three</strong> implementations of <strong>the same</strong> interface and you want them to be chained in an exactly defined order. ASP.NET Core dependency injection allows you to register multiple implementations with the same interface but then it won't figure out which to inject in which constructor so you have to explicitly define how they are injected.</p>
 <h3 id="the-solution">The solution</h3>
 <p>Some more complex dependency injection containers like Unity allow named dependencies and other tools to differentiate, but in my opinion these can easily lead to misuse of these containers and accidentally implementing anti-patterns like service locator. Fortunately the .NET Core minimal DI toolset doesn't navigate you in the wrong direction, since you can implement the desired behavior only by using <strong>factory methods</strong>:</p>
 <pre><code class="language-cs">var services = new ServiceCollection();
