@@ -16,7 +16,7 @@
     <meta name="description" content="">
     <meta name="author" content="">
 
-    <title>CODE.RNR</title>
+    <title>CODE.RNR | My first dotnet contribution</title>
 
     <!-- Bootstrap core CSS -->
     <link href="/assets/vendor/bootstrap/css/bootstrap.min.css" rel="stylesheet">
@@ -35,8 +35,8 @@
     <script src="/assets/vendor/highlight.js/highlight.pack.js"></script>
     <script>hljs.initHighlightingOnLoad();</script>
 
-    <meta property="og:image" content="/assets/img/og-image.png" />
-    <meta property="og:description" content="Learn, code, rock'n'roll" />
+    <meta property="og:image" content="/assets/img/posts/pull-request.png" />
+    <meta property="og:description" content="I posted a pull request fixing a default value in dotnet api docs and it got accepted and merged. It ain't much, but it's honest work." />
 
 </head>
 
@@ -81,34 +81,42 @@
     <div class="container">
         <div class="row">
             <div class="col-lg-8 col-md-10 mx-auto">
-                <h2>Tag: WinRT</h2>
+                <h2>My first dotnet contribution</h2>
+<div>
+    <span class="tags">
+        <a href="/tags/dotnet-core">dotnet core</a>
+        <a href="/tags/github">github</a>
+        <a href="/tags/contribution">contribution</a>
+        <a href="/tags/open-source">open source</a>
+        <a href="/tags/signedxml">SignedXml</a>
+        <a href="/tags/sha">SHA</a>
+    </span>
+</div>
+<p class="post-meta">Posted by
+    <a href="/about">codernr</a>
+    on 2020-07-03 15:00
+</p>
 
-<div class="post-preview">
-    <a href="/posts/windows-iot-external-ip-updater">
-        <h3 class="post-title">
-            Windows IoT external IP updater
-        </h3>
-        <h4 class="post-subtitle">
-            Creating a Windows 10 core IoT background application that periodically checks the external IP and notifies in email if changed
-        </h4>
-    </a>
-    <p class="post-meta">Posted by
-        <a href="/about">codernr</a>
-        on 2016-09-30 14:00</p>
-</div>
-<div class="post-preview">
-    <a href="/posts/wrapping-async-methods-to-return-winrt-async-operations">
-        <h3 class="post-title">
-            Wrapping async methods to return WinRT async operations
-        </h3>
-        <h4 class="post-subtitle">
-            
-        </h4>
-    </a>
-    <p class="post-meta">Posted by
-        <a href="/about">codernr</a>
-        on 2019-09-21 14:00</p>
-</div>
+<p>Recently I built a SOAP communication layer in dotnet core. I had to create a signed SAML request so I used <a href="https://docs.microsoft.com/en-us/dotnet/api/system.security.cryptography.xml.signedxml">SignedXml</a> class tu build the signature. <a href="https://docs.microsoft.com/en-us/dotnet/api/system.security.cryptography.xml.reference">References</a> had to be added with <code>SHA1</code> <a href="https://docs.microsoft.com/en-us/dotnet/api/system.security.cryptography.xml.reference.digestmethod">DigestMethod</a>, and, as the documentation said, it was the default value of the property.</p>
+<p>Then I got an error response from the server that the digest methods of references are invalid. After some debugging I realized that default value is <code>SHA256</code> indeed. I made some research and <a href="https://github.com/dotnet/runtime/commit/f628235e536cf488f8c0356942ff8b949551fc62">found the commit</a> that changed the default from <code>SHA1</code> to <code>SHA256</code>. It was a bit surprising that the commit was pushed more than 2 years ago but nobody noticed the documentation inconsistency. So I read the <a href="https://docs.microsoft.com/en-us/contribute/dotnet/dotnet-contribute">contribution guideline</a>, forked the <a href="https://github.com/dotnet/dotnet-api-docs">docs repository</a> and opened a <a href="https://github.com/dotnet/dotnet-api-docs/pull/4320">pull request</a> to fix it. And then it got reviewed and accepted. YAAAY!</p>
+<p><img src="/assets/img/posts/pull-request.png" alt="It ain't much, but it's honest work" /></p>
+
+
+<div id="disqus_thread"></div>
+<script>
+    var disqus_config = function () {
+        this.page.url = 'https://codernr.github.io';
+        this.page.identifier = 'codernr';
+    };
+
+    (function() { // DON'T EDIT BELOW THIS LINE
+    var d = document, s = d.createElement('script');
+    s.src = 'https://codernr.disqus.com/embed.js';
+    s.setAttribute('data-timestamp', +new Date());
+    (d.head || d.body).appendChild(s);
+    })();
+    </script>
+    <noscript>Please enable JavaScript to view the <a href="https://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>               
 
             </div>
         </div>
