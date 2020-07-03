@@ -94,12 +94,12 @@
 </div>
 <p class="post-meta">Posted by
     <a href="/about">codernr</a>
-    on 2020-07-03 15:00
+    on 2020-07-03 15:30
 </p>
 
 <p>Recently I built a SOAP communication layer in dotnet core. I had to create a signed SAML request so I used <a href="https://docs.microsoft.com/en-us/dotnet/api/system.security.cryptography.xml.signedxml">SignedXml</a> class tu build the signature. <a href="https://docs.microsoft.com/en-us/dotnet/api/system.security.cryptography.xml.reference">References</a> had to be added with <code>SHA1</code> <a href="https://docs.microsoft.com/en-us/dotnet/api/system.security.cryptography.xml.reference.digestmethod">DigestMethod</a>, and, as the documentation said, it was the default value of the property.</p>
 <p>Then I got an error response from the server that the digest methods of references are invalid. After some debugging I realized that default value is <code>SHA256</code> indeed. I made some research and <a href="https://github.com/dotnet/runtime/commit/f628235e536cf488f8c0356942ff8b949551fc62">found the commit</a> that changed the default from <code>SHA1</code> to <code>SHA256</code>. It was a bit surprising that the commit was pushed more than 2 years ago but nobody noticed the documentation inconsistency. So I read the <a href="https://docs.microsoft.com/en-us/contribute/dotnet/dotnet-contribute">contribution guideline</a>, forked the <a href="https://github.com/dotnet/dotnet-api-docs">docs repository</a> and opened a <a href="https://github.com/dotnet/dotnet-api-docs/pull/4320">pull request</a> to fix it. And then it got reviewed and accepted. YAAAY!</p>
-<p><img src="/assets/img/posts/pull-request.png" alt="It ain't much, but it's honest work" /></p>
+<p class="text-center"><img src="/assets/img/posts/pull-request.png" alt="It ain't much, but it's honest work" class="img-fluid"></p>
 
 
 <div id="disqus_thread"></div>
