@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <!-- Global site tag (gtag.js) - Google Analytics -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=UA-84292267-2"></script>
+    <script>
+        window.dataLayer = window.dataLayer || [];
+        function gtag(){dataLayer.push(arguments);}
+        gtag('js', new Date());
+
+        gtag('config', 'UA-84292267-2');
+    </script>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <meta name="description" content="">
+    <meta name="author" content="">
+
+    <title>CODE.RNR | Execute queue with ASP.NET core timed hosted service</title>
+
+    <!-- Bootstrap core CSS -->
+    <link href="/assets/vendor/bootstrap/css/bootstrap.min.css" rel="stylesheet">
+
+    <!-- Custom fonts for this template -->
+    <link href="/assets/vendor/fontawesome-free/css/all.min.css" rel="stylesheet" type="text/css">
+    <link href='https://fonts.googleapis.com/css?family=Roboto:400,700,400italic,700italic' rel='stylesheet'
+        type='text/css'>
+    <link
+        href='https://fonts.googleapis.com/css?family=Montserrat:300italic,400italic,600italic,700italic,800italic,400,300,600,700,800'
+        rel='stylesheet' type='text/css'>
+    <link rel="stylesheet" href="/assets/vendor/highlight.js/styles/dracula.css">
+    <!-- Custom styles for this template -->
+    <link href="/assets/css/clean-blog.min.css" rel="stylesheet">
+
+    <script src="/assets/vendor/highlight.js/highlight.pack.js"></script>
+    <script>hljs.initHighlightingOnLoad();</script>
+
+    <meta property="og:image" content="/assets/img/posts/execute-queue-with-aspnet-core-timed-hosted-service.png" />
+    <meta property="og:description" content="This post shows how to create a hosted background service that polls a database for queued jobs on a regular basis and executes them, one at a time." />
+
+</head>
+
+<body>
+
+    <!-- Navigation -->
+    <nav class="navbar navbar-expand-lg navbar-dark fixed-top" id="mainNav">
+        <div class="container">
+            <a class="navbar-brand" href="/">CODE.RNR</a>
+            <button class="navbar-toggler navbar-toggler-right" type="button" data-toggle="collapse"
+                data-target="#navbarResponsive" aria-controls="navbarResponsive" aria-expanded="false"
+                aria-label="Toggle navigation">
+                Menu
+                <i class="fas fa-bars"></i>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarResponsive">
+                <ul class="navbar-nav ml-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="/about">About</a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Page Header -->
+    <header class="masthead" style="background-image: url('/assets/img/main.png')">
+        <div class="overlay"></div>
+        <div class="container">
+            <div class="row">
+                <div class="col-lg-8 col-md-10 mx-auto">
+                    <div class="site-heading">
+                        <h1>CODE.RNR</h1>
+                        <span class="subheading">Learn, code, rock'n'roll</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <div class="container">
+        <div class="row">
+            <div class="col-lg-8 col-md-10 mx-auto">
+                <h2>Execute queue with ASP.NET core timed hosted service</h2>
+<div>
+    <span class="tags">
+        <a href="/tags/dotnet-core">dotnet core</a>
+        <a href="/tags/asp.net-core">asp.net core</a>
+        <a href="/tags/hosted-service">hosted service</a>
+        <a href="/tags/background-service">background service</a>
+        <a href="/tags/queue">queue</a>
+    </span>
+</div>
+<p class="post-meta">Posted by
+    <a href="/about">codernr</a>
+    on 2020-07-27 12:30
+</p>
+
+<p>The best way to execute long running tasks in the background using ASP.NET Core is creating hosted services. There is a <a href="https://docs.microsoft.com/en-us/aspnet/core/fundamentals/host/hosted-services?view=aspnetcore-3.1&amp;tabs=visual-studio">great documentation</a> of how you can achieve this on Microsoft docs, but I took these basic examples a bit further.</p>
+<blockquote>
+<p>To see the working example check out my repository: <a href="https://github.com/codernr/timed-hosted-service-example">https://github.com/codernr/timed-hosted-service-example</a></p>
+</blockquote>
+<h3 id="the-problem">The problem</h3>
+<p>There is a job queue that is represented by a database table. Items are randomly pushed to this table by another application. I want to check this queue regularly and if I find a new job, I want to execute it. (Always one at a time, no concurrency.)</p>
+<h3 id="the-program-flow">The program flow</h3>
+<p>I need some kind of timer that fires regularly, regardless of any circumstance. When the timer fires, a piece of code has to be run that executes a job if it finds one in the database table. Since I want to avoid concurrency it also has to check if there is any job still running. So here are the tasks of this piece of code:</p>
+<ol>
+<li>Check if there is a running job, if there is one, returns.</li>
+<li>Check the database if there are new jobs, if it finds nothing, returns.</li>
+<li>Take one job and start to execute it.</li>
+</ol>
+<h3 id="what-we-already-have">What we already have</h3>
+<p>The <a href="https://docs.microsoft.com/en-us/aspnet/core/fundamentals/host/hosted-services?view=aspnetcore-3.1&amp;tabs=visual-studio">aforementioned documentation page</a> gives me almost all the information that is needed to achieve this so I just summarize it if you're lazy to read it (don't be):</p>
+<p>To implement a hosted service you have to create a class that implements <code>IHostedService</code> interface. It has two methods: <code>StartAsync</code> that contains the logic to start the background task, and <code>StopAsync</code> that is triggered when the host is performing a graceful shutdown. This is the place where you can stop your remaining operations. Then you can register this class as a hosted service in your application's <code>Program.cs</code> (for details see the docs). And that's it.</p>
+<h4 id="backgroundtask">BackgroundTask</h4>
+<p>There is an abstract class called <code>BackgroundTask</code> as part of the runtime (<a href="https://github.com/dotnet/runtime/blob/master/src/libraries/Microsoft.Extensions.Hosting.Abstractions/src/BackgroundService.cs">see source code here</a>). If your service extends this class you can avoid writing boilerplate code you should write if you implemented the interface only. You just have to override <code>ExecuteAsync</code>, put your long running logic there and it will be run in the background. The problem with it is that I can't execute something regularly in this method, because it is one long running task. Executing a job then waiting for a fixed time with <code>Task.Delay</code> wouldn't be truly regular because the length of each interval would depend on the length of each executed job.</p>
+<h4 id="timed-background-tasks-example">Timed background tasks example</h4>
+<p>There is also a <a href="https://docs.microsoft.com/en-us/aspnet/core/fundamentals/host/hosted-services?view=aspnetcore-3.1&amp;tabs=visual-studio#timed-background-tasks">working example</a> of a regularly called method but that one is executed synchronously and it doesn't take into account that one job execution may be longer than the interval itself.</p>
+<h4 id="consuming-a-scoped-service-in-a-background-task">Consuming a scoped service in a background task</h4>
+<p>This <a href="https://docs.microsoft.com/en-us/aspnet/core/fundamentals/host/hosted-services?view=aspnetcore-3.1&amp;tabs=visual-studio#consuming-a-scoped-service-in-a-background-task">example in the docs</a> is not about the hosted service itself but the way you can access a scoped service like <code>DbContext</code> from the hosted service. First you have to inject the <code>IServiceProvider</code> into the constructor of the hosted service then you can create a new scope in your method and get the required service from the service provider of that scope. That will be useful when I want to access my database table through <code>DbContext</code>.</p>
+<h3 id="putting-it-together">Putting it together</h3>
+<p>To achieve my goal and also handle graceful shutdown I have to merge the concepts of the <code>BackgroundTask</code> and the timed example and use the scoped service provider in the part that will be used regularly. I used the source of <code>BackgroundTask</code> as a starting point. Let's see it!</p>
+<h4 id="constructor">Constructor</h4>
+<pre><code class="language-cs">public TimedHostedService(IServiceProvider services, ILogger&lt;TimedHostedService&gt; logger) =&gt;
+  (this.services, this.logger) = (services, logger);
+</code></pre>
+<p>Nothing special, I inject the service provider to get <code>DbContext</code> later plus a logger to be able to follow the execution on the console.</p>
+<h4 id="startasync">StartAsync</h4>
+<pre><code class="language-cs">public Task StartAsync(CancellationToken cancellationToken)
+{
+  this._stoppingCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+
+  this._timer = new Timer(this.FireTask, null, TimeSpan.FromSeconds(10), TimeSpan.FromSeconds(30));
+
+  this.logger.LogInformation(&quot;Started timer&quot;);
+
+  return Task.CompletedTask;
+}
+</code></pre>
+<p>First I create a linked token source that fires when the original one and save it in a private field. (Same code as in <code>BackgroundTask</code>). Then I create a timer that calls <code>FireTask</code> method in every 30 seconds. (Before the first call it waits 10 seconds.) This is the part that I took from the timer example.</p>
+<h4 id="firetask">FireTask</h4>
+<pre><code class="language-cs">private void FireTask(object state)
+{
+  if (this._executingTask == null || this._executingTask.IsCompleted)
+  {
+    this.logger.LogInformation(&quot;No task is running, check for new job&quot;);
+    this._executingTask = this.ExecuteNextJobAsync(this._stoppingCts.Token);
+  }
+  else
+  {
+    this.logger.LogInformation(&quot;There is a task still running, wait for next cycle&quot;);
+  }
+}
+</code></pre>
+<p>This is the method that gets called periodically. It checks if there is no previous task running and then kicks off <code>ExecuteNextJobAsync</code> task passing it the cancellation token and storing it in the <code>_executingTask</code> private field.</p>
+<h4 id="executenextjobasync">ExecuteNextJobAsync</h4>
+<pre><code class="language-cs">private async Task ExecuteNextJobAsync(CancellationToken cancellationToken)
+{
+  using var scope = this.services.CreateScope();
+
+  var context = scope.ServiceProvider.GetRequiredService&lt;JobDbContext&gt;();
+
+  // whatever logic to retrieve the next job
+  var nextJobData = await context.JobDatas.FirstOrDefaultAsync();
+
+  if (nextJobData == null)
+  {
+    // no next job
+    this.logger.LogInformation(&quot;No new job found, wait for next cycle&quot;);
+    return;
+  }
+
+  // simulate long running job
+  this.logger.LogInformation(&quot;Execute job with Id: {0} Delay: {1}&quot;, nextJobData.Id, nextJobData.Delay);
+
+  await Task.Delay(TimeSpan.FromSeconds(nextJobData.Delay));
+
+  this.logger.LogInformation(&quot;Job execution finished (Id: {0})&quot;, nextJobData.Id);
+
+  // remove executed job from queue
+  context.Remove(nextJobData);
+  await context.SaveChangesAsync();
+}
+</code></pre>
+<p>This is the actual long running method that retrieves the job data and executes it. This async task is stored in <code>_executingTask</code> that is checked if ready before the next interval fires <code>ExecuteNextJobAsync</code> again through <code>FireTask</code>. This example uses a simulation that calls a <code>Task.Delay</code> with seconds based on job data.</p>
+<h4 id="stopasync-dispose">StopAsync / Dispose</h4>
+<pre><code class="language-cs">public async Task StopAsync(CancellationToken cancellationToken)
+{
+  this._timer.Change(Timeout.Infinite, 0);
+
+  if (this._executingTask == null || this._executingTask.IsCompleted)
+  {
+    return;
+  }
+
+  try
+  {
+    this._stoppingCts.Cancel();
+  }
+  finally
+  {
+    await Task.WhenAny(this._executingTask, Task.Delay(Timeout.Infinite, cancellationToken))
+  }
+}
+
+public void Dispose()
+{
+  this._timer.Dispose();
+  this._stoppingCts?.Cancel();
+}
+</code></pre>
+<p>Basically this code is the same as the one you find in the <code>BackgroundService</code> source plus stopping the timer but I think it needs some explanation. This method gets called when the system starts a graceful shutdown. The process:</p>
+<ol>
+<li>stop the timer</li>
+<li>If there was no task or the last one has finished, everything's fine, we can shut down and return</li>
+<li><code>_executingTask</code> is still running so let's signal the cancellation with <code>_stoppingCts</code> of which token is passed in <code>ExecuteNextJobAsync</code></li>
+<li>Finally wait for the first of <code>_executingTask</code> and <code>cancellationToken</code> to finish/fire. Note that <code>cancellationToken</code> here signals the end of the graceful shutdown process so you have to return when it is fired no matter what.</li>
+</ol>
+<h3 id="try-it-out">Try it out</h3>
+<p>You can check how the code works if you check out my <a href="https://github.com/codernr/timed-hosted-service-example">exmple project from github</a>.</p>
+<p>To set your project up after git clone, you have to:</p>
+<ul>
+<li>run <code>dotnet restore</code></li>
+<li>run <code>dotnet ef database update</code> (<code>dotnet-ef</code> tool has to be installed)</li>
+<li>add different jobs to the created table to test functionality</li>
+</ul>
+
+
+<div id="disqus_thread"></div>
+<script>
+    var disqus_config = function () {
+        this.page.url = 'https://codernr.github.io';
+        this.page.identifier = 'codernr';
+    };
+
+    (function() { // DON'T EDIT BELOW THIS LINE
+    var d = document, s = d.createElement('script');
+    s.src = 'https://codernr.disqus.com/embed.js';
+    s.setAttribute('data-timestamp', +new Date());
+    (d.head || d.body).appendChild(s);
+    })();
+    </script>
+    <noscript>Please enable JavaScript to view the <a href="https://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>               
+
+            </div>
+        </div>
+    </div>
+
+    <hr>
+
+    <!-- Footer -->
+    <footer>
+        <div class="container">
+            <div class="row">
+                <div class="col-lg-8 col-md-10 mx-auto">
+                    <ul class="list-inline text-center">
+                        <li class="list-inline-item">
+                            <a href="https://www.linkedin.com/in/zolt%C3%A1n-cs%C3%B3r%C3%A9-12a92365/">
+                                <span class="fa-stack fa-lg">
+                                    <i class="fas fa-circle fa-stack-2x"></i>
+                                    <i class="fab fa-linkedin-in fa-stack-1x fa-inverse"></i>
+                                </span>
+                            </a>
+                        </li>
+                        <li class="list-inline-item">
+                            <a href="https://github.com/codernr">
+                                <span class="fa-stack fa-lg">
+                                    <i class="fas fa-circle fa-stack-2x"></i>
+                                    <i class="fab fa-github fa-stack-1x fa-inverse"></i>
+                                </span>
+                            </a>
+                        </li>
+                        <li class="list-inline-item">
+                            <a href="https://stackoverflow.com/story/codernr">
+                                <span class="fa-stack fa-lg">
+                                    <i class="fas fa-circle fa-stack-2x"></i>
+                                    <i class="fab fa-stack-overflow fa-stack-1x fa-inverse"></i>
+                                </span>
+                            </a>
+                        </li>
+                    </ul>
+                    <p class="copyright text-muted">Copyright &copy; Zoltán Csóré 2020</p>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Bootstrap core JavaScript -->
+    <script src="/assets/vendor/jquery/jquery.min.js"></script>
+    <script src="/assets/vendor/bootstrap/js/bootstrap.bundle.min.js"></script>
+
+    <!-- Custom scripts for this template -->
+    <script src="/assets/js/clean-blog.min.js"></script>
+
+    <script id="dsq-count-scr" src="//codernr.disqus.com/count.js" async></script>
+</body>
+
+</html>
