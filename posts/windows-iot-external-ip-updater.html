@@ -31,6 +31,7 @@
     <link rel="stylesheet" href="/assets/vendor/highlight.js/styles/dracula.css">
     <!-- Custom styles for this template -->
     <link href="/assets/css/clean-blog.min.css" rel="stylesheet">
+    <link href="/assets/css/formkit.min.css" rel="stylesheet">
 
     <script src="/assets/vendor/highlight.js/highlight.pack.js"></script>
     <script>hljs.initHighlightingOnLoad();</script>
@@ -370,6 +371,23 @@ private async Task LogMailRetry(Exception ex, TimeSpan time)
 <p>If the IP was returned properly and it is different, it tries to send the email with the new address. There is no try/catch block in the <code>SendMail</code> method so if there any exception, it is thrown directly so here I could use the <code>HandleException</code> method to trigger the retry process. Here I have to decide if the process was successful so <code>ExecuteAndCaptureAsync</code> instead of <code>ExecuteAsync</code> to return a <code>PolicyResult</code> object. If even the last retry failed with an exception, it will have the <code>OutcomeType.Failure</code> value in it so the <code>Check</code> returns and app waits for next cycle. If everything's OK, the mail is sent and the config object can be saved with the new IP.</p>
 <p>So this is my little IP-email-updater app, <a href="https://github.com/codernr/ipwatcher">clone it from GitHub</a> and feel free to use it in your own projects!</p>
 
+
+<div class="newsletter-heading mt-5 mb-3 text-left text-warning font-weight-bold">
+    Want to get notified about new posts? Subscribe to my newsletter:
+</div>
+<script src="https://f.convertkit.com/ckjs/ck.5.js"></script>
+<form action="https://app.convertkit.com/forms/1563355/subscriptions" class="seva-form formkit-form" method="post" data-sv-form="1563355" data-uid="3fe067d543" data-format="inline" data-version="5" data-options="{&quot;settings&quot;:{&quot;after_subscribe&quot;:{&quot;action&quot;:&quot;message&quot;,&quot;success_message&quot;:&quot;Success! Now check your email to confirm your subscription.&quot;,&quot;redirect_url&quot;:&quot;&quot;},&quot;analytics&quot;:{&quot;google&quot;:null,&quot;facebook&quot;:null,&quot;segment&quot;:null,&quot;pinterest&quot;:null},&quot;modal&quot;:{&quot;trigger&quot;:&quot;timer&quot;,&quot;scroll_percentage&quot;:null,&quot;timer&quot;:5,&quot;devices&quot;:&quot;all&quot;,&quot;show_once_every&quot;:15},&quot;powered_by&quot;:{&quot;show&quot;:true,&quot;url&quot;:&quot;https://convertkit.com?utm_source=dynamic&amp;utm_medium=referral&amp;utm_campaign=poweredby&amp;utm_content=form&quot;},&quot;recaptcha&quot;:{&quot;enabled&quot;:true},&quot;return_visitor&quot;:{&quot;action&quot;:&quot;show&quot;,&quot;custom_content&quot;:&quot;&quot;},&quot;slide_in&quot;:{&quot;display_in&quot;:&quot;bottom_right&quot;,&quot;trigger&quot;:&quot;timer&quot;,&quot;scroll_percentage&quot;:null,&quot;timer&quot;:5,&quot;devices&quot;:&quot;all&quot;,&quot;show_once_every&quot;:15},&quot;sticky_bar&quot;:{&quot;display_in&quot;:&quot;top&quot;,&quot;trigger&quot;:&quot;timer&quot;,&quot;scroll_percentage&quot;:null,&quot;timer&quot;:5,&quot;devices&quot;:&quot;all&quot;,&quot;show_once_every&quot;:15}},&quot;version&quot;:&quot;5&quot;}" min-width="400 500 600 700 800">
+    <ul class="formkit-alert formkit-alert-error" data-element="errors" data-group="alert"></ul>
+    <div data-element="fields" data-stacked="false" class="seva-fields formkit-fields">
+        <div class="formkit-field">
+            <input class="formkit-input" name="email_address" placeholder="Your email address" required="" type="email">
+        </div>
+        <button data-element="submit" class="formkit-submit formkit-submit">
+            <div class="formkit-spinner"><div></div><div></div><div></div></div>
+            <span>Subscribe</span>
+        </button>
+    </div>
+</form>
 
 <div id="disqus_thread"></div>
 <script>
